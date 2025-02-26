@@ -1,0 +1,46 @@
+import pandas as pd
+
+def analyze_rejection_bundles(df):
+    # Group by Uts id and FO id to get message counts in each bundle
+    grouped = df.groupby(['Uts id', 'FO id']).agg(
+        message_count=('Uts id', 'count'),
+        region=('region', 'first')  # Assuming each bundle has the same region value
+    ).reset_index()
+    
+    # If bundles might have different region values, use this instead:
+    # grouped = df.groupby(['Uts id', 'FO id']).agg(
+    #     message_count=('Uts id', 'count'),
+    #     regions=('region', lambda x: list(set(x)))  # Get unique regions in the bundle
+    # ).reset_index()
+    
+    # Distribution of bundle sizes across all regions
+    bundle_distribution = grouped['message_count'].value_counts().sort_index().reset_index()
+    bundle_distribution.columns = ['bundle_size', 'frequency']
+    
+    # Analysis of bundle sizes by region
+    region_bundle_analysis = grouped.groupby(['region', 'message_count']).size().reset_index(name='frequency')
+    
+    # Find which bundle sizes appear in which regions
+    bundle_region_matrix = pd.crosstab(
+        grouped['message_count'], 
+        grouped['region'], 
+        margins=True, 
+        margins_name='Total'
+    )
+    
+    return grouped, bundle_distribution, region_bundle_analysis, bundle_region_matrix
+
+# Example usage
+# Assuming your dataframe is called 'rejection_data' and has a 'region' column
+# rejection_data = pd.read_csv('your_data.csv')
+# grouped_data, bundle_stats, region_analysis, region_matrix = analyze_rejection_bundles(rejection_data)
+
+# Print the results
+# print("Individual bundles:")
+# print(grouped_data.head())
+# print("\nBundle size distribution:")
+# print(bundle_stats)
+# print("\nRegion-wise bundle analysis:")
+# print(region_analysis)
+# print("\nBundle size occurrence by region:")
+# print(region_matrix)
